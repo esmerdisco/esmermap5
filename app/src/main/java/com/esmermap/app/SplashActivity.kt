@@ -1,13 +1,12 @@
 package com.esmermap.app
 
 import android.content.Intent
+import android.graphics.Movie
 import android.os.Bundle
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.resource.gif.GifDrawable
-import com.bumptech.glide.request.target.CustomTarget
-import com.bumptech.glide.request.transition.Transition
+import java.io.ByteArrayOutputStream
 
 class SplashActivity : AppCompatActivity() {
 
@@ -17,33 +16,40 @@ class SplashActivity : AppCompatActivity() {
 
         val splashImage = findViewById<ImageView>(R.id.splashImage)
 
+        // نمایش GIF
         Glide.with(this)
             .asGif()
             .load(R.drawable.splash)
-            .into(object : CustomTarget<GifDrawable>() {
+            .into(splashImage)
 
-                override fun onResourceReady(
-                    resource: GifDrawable,
-                    transition: Transition<in GifDrawable>?
-                ) {
-                    splashImage.setImageDrawable(resource)
+        // گرفتن مدت واقعی GIF
+        val gifDuration = getGifDuration(R.drawable.splash)
 
-                    resource.setLoopCount(1) // فقط یک بار پخش
-                    resource.start()
+        // +1000ms برای موندن فریم آخر
+        val totalTime = gifDuration + 1000L
 
-                    // محاسبه مدت واقعی GIF از فریم‌ها
-                    val totalDurationMs = (0 until resource.frameCount)
-                        .sumOf { i -> resource.getFrameDuration(i) }
-                        .toLong()
+        splashImage.postDelayed({
+            startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+            finish()
+            overridePendingTransition(0, 0)
+        }, totalTime)
+    }
 
-                    splashImage.postDelayed({
-                        startActivity(Intent(this@SplashActivity, MainActivity::class.java))
-                        finish()
-                        overridePendingTransition(0, 0)
-                    }, totalDurationMs)
-                }
+    private fun getGifDuration(resId: Int): Long {
+        val input = resources.openRawResource(resId)
+        val bytes = input.use {
+            val buffer = ByteArrayOutputStream()
+            val tmp = ByteArray(8 * 1024)
+            while (true) {
+                val read = it.read(tmp)
+                if (read <= 0) break
+                buffer.write(tmp, 0, read)
+            }
+            buffer.toByteArray()
+        }
 
-                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
-            })
+        val movie = Movie.decodeByteArray(bytes, 0, bytes.size)
+        val duration = movie?.duration() ?: 0
+        return if (duration <= 0) 2000L else duration.toLong()
     }
 }
