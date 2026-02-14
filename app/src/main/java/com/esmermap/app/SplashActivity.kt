@@ -27,15 +27,20 @@ class SplashActivity : AppCompatActivity() {
                     transition: Transition<in GifDrawable>?
                 ) {
                     splashImage.setImageDrawable(resource)
-                    resource.setLoopCount(1) // فقط یک بار پخش شود
+
+                    resource.setLoopCount(1) // فقط یک بار پخش
                     resource.start()
 
-                    val duration = resource.duration
+                    // محاسبه مدت واقعی GIF از فریم‌ها
+                    val totalDurationMs = (0 until resource.frameCount)
+                        .sumOf { i -> resource.getFrameDuration(i) }
+                        .toLong()
 
                     splashImage.postDelayed({
                         startActivity(Intent(this@SplashActivity, MainActivity::class.java))
                         finish()
-                    }, duration.toLong())
+                        overridePendingTransition(0, 0)
+                    }, totalDurationMs)
                 }
 
                 override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
